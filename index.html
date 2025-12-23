@@ -343,6 +343,8 @@
 
                 const img = document.createElement('img');
 
+                img.decoding = 'async';
+
                 // 1. Siker esetén megjelenítjük
                 img.onload = function() {
                     this.classList.add('loaded'); 
@@ -366,7 +368,7 @@
                 // Először mindig a .jpg-vel próbálkozunk
                 img.src = `kepek/${number}.jpg`; 
                 img.alt = `Kép ${number}`;
-                img.loading = 'lazy';
+                //img.loading = 'lazy';
                 
                 div.appendChild(img);
                 container.appendChild(div);
@@ -511,7 +513,19 @@
                 }
             });
 
-
+            setTimeout(() => {
+                const images = document.querySelectorAll('.gallery-item img');
+                images.forEach(img => {
+                    // Ha a képnek nincs mérete VAGY nincs rajta a 'loaded' osztály
+                    if (!img.naturalWidth || !img.classList.contains('loaded')) {
+                        console.log('Beragadt kép újrapróbálása:', img.src);
+                        // Kényszerített újratöltés
+                        const currentSrc = img.src;
+                        img.src = ''; // Kiürítjük
+                        img.src = currentSrc; // Visszaírjuk
+                    }
+                });
+            }, 4000); // 4000ms = 4 másodperc várakozás
 
         });
     </script>
