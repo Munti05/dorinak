@@ -41,7 +41,7 @@
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const container = document.getElementById('gallery-container');
-            const totalImages = 100;
+            const totalImages = 97;
             
             // 1. Tömb létrehozása 1-től 100-ig
             let imageNumbers = [];
@@ -61,12 +61,12 @@
                 const img = document.createElement('img');
                 
                 // Kép forrása: 1.jpg, 2.jpg ... 100.jpg
-                img.src = `${number}.jpg`; 
+                img.src = `kepek/${number}.jpg`; 
                 
                 // Alt szöveg a hozzáférhetőségért
-                img.alt = `${number}. kép`;
+                img.alt = `kepek/${number}. kép`;
                 
-                // **Lazy loading hozzáadása**
+                // Lazy loading hozzáadása
                 img.loading = "lazy";
                 
                 // Hozzáadás a konténerhez
