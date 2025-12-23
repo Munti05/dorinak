@@ -3,101 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Képgaléria</title>
+    <title>MINK</title>
     <style>
-        /* ALAPBEÁLLÍTÁSOK */
+        /* --- ALAPOK --- */
         body, html {
             margin: 0;
             padding: 0;
-            background-color: #f5f4f2; /* Cosmos stílusú háttérszín */
+            background-color: #f5f4f2;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             height: 100%;
-            overflow: hidden; /* A body nem görgethető, csak a belső konténer */
-            -webkit-tap-highlight-color: transparent;
+            overflow: hidden; /* A görgetést a belső konténer végzi */
+            color: #1d1717;
         }
 
-        /* GÖRGETHETŐ VÁSZON (CANVAS) */
+        /* --- A FŐ VÁSZON (GÖRGETHETŐ) --- */
         #scroll-container {
             width: 100vw;
             height: 100vh;
-            overflow: scroll; /* Mindkét irányba görgethető */
+            overflow: scroll; /* Natív görgetés engedélyezése */
             position: relative;
-            /* Eltüntetjük a görgetősávokat a letisztult designért */
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none; /* IE/Edge */
-            cursor: grab; /* Kéz ikon */
+            cursor: grab; /* Kéz ikon alapból */
+            /* Görgetősávok elrejtése */
+            scrollbar-width: none; 
+            -ms-overflow-style: none;
+            /* Finom görgetés */
+            scroll-behavior: auto; /* JS-hez kell az auto, hogy azonnal ugorjon */
         }
         #scroll-container::-webkit-scrollbar { 
-            display: none; /* Chrome/Safari */
+            display: none; 
         }
-        #scroll-container:active {
-            cursor: grabbing;
+        #scroll-container.active {
+            cursor: grabbing; /* Markoló kéz ha húzzuk */
+            user-select: none; /* Ne jelöljön ki szöveget húzáskor */
         }
 
-        /* LEBEGŐ FEJLÉC */
+        /* --- FEJLÉC (STICKY & BLUR) --- */
         #header {
             position: fixed;
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 1000;
-            background: rgba(245, 244, 242, 0.7); /* Enyhén áttetsző háttér */
-            backdrop-filter: blur(15px); /* A blur effekt */
-            -webkit-backdrop-filter: blur(15px);
-            padding: 10px 30px;
+            background: rgba(245, 244, 242, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 12px 30px;
             border-radius: 50px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            border: 1px solid rgba(255,255,255,0.5);
-            pointer-events: none; /* Hogy át lehessen rajta görgetni, ha kell */
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+            border: 1px solid rgba(255,255,255,0.4);
+            pointer-events: none;
         }
 
         h1 {
             margin: 0;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 500;
-            color: #333;
+            letter-spacing: 0.5px;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            white-space: nowrap;
+            color: #333;
         }
 
-        /* A "TETRIS" RÁCS */
+        /* --- A RÁCS (GRID) --- */
         #gallery-grid {
-            /* A vászon mérete. 200vw = 2x a képernyő szélessége -> oldalra görgetés */
-            width: 250vw; 
-            padding: 100px 20px; /* Hagyunk helyet fent a fejlécnek */
+            /* Hatalmas vászonméret */
+            width: 450vw; 
+            min-height: 150vh;
+            padding: 14px ;/*Nagy margó, hogy legyen "tér" */
             
             display: grid;
-            /* Ez a kulcs: kb 150px széles oszlopok, kitöltik a teret */
             grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            /* Automatikus sűrű elhelyezés - ez tölti ki a lyukakat (Tetris mód) */
-            grid-auto-flow: dense; 
-            gap: 10px;
+            grid-auto-rows: 220px; /* Fix sor magasság a jobb Tetrishez */
+            grid-auto-flow: dense; /* Ez tölti ki a lyukakat */
+            gap: 14px;
         }
 
         .gallery-item {
             position: relative;
-            width: 100%;
-            height: 100%;
+            background-color: #e5e2df; /* Helykitöltő szín */
             border-radius: 4px;
             overflow: hidden;
-            background-color: #e0e0e0;
-            /* Alapértelmezett képarány (pl. álló) */
-            aspect-ratio: 2 / 3; 
-            transition: transform 0.3s ease;
-        }
-
-        .gallery-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover; /* A kép kitölti a rendelkezésre álló helyet torzítás nélkül */
-            display: block;
-            opacity: 0;
-            transition: opacity 0.5s ease;
-        }
-        
-        .gallery-item img.loaded {
-            opacity: 1;
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         .gallery-item:hover {
@@ -105,65 +90,148 @@
             z-index: 10;
         }
 
-        /* NAGY MÉRETŰ KÉPEK (2x2-es blokk) */
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0; /* Kezdetben láthatatlan */
+            transition: opacity 0.6s ease;
+            display: block;
+        }
+
+        .gallery-item img.loaded {
+            opacity: 1; /* Betöltés után megjelenik */
+        }
+
+        /* Nagy elemek (Tetris effekt) */
         .span-2 {
             grid-column: span 2;
             grid-row: span 2;
         }
+        .span-wide {
+            grid-column: span 2;
+        }
+        .span-tall {
+            grid-row: span 2;
+        }
 
-        /* INFO GOMB ÉS MODAL */
+        /* --- INFO GOMB --- */
         #info-btn {
             position: fixed;
             bottom: 30px;
             right: 30px;
-            width: 50px;
-            height: 50px;
-            background: white;
+            width: 44px;
+            height: 44px;
+            background: rgba(237, 233, 229, 0.8);
+            backdrop-filter: blur(10px);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             cursor: pointer;
             z-index: 2000;
-            font-weight: bold;
-            font-size: 20px;
-            color: #333;
+            font-weight: 600;
+            font-family: serif;
+            font-style: italic;
+            font-size: 18px;
+            color: #1d1717;
+            border: 1px solid rgba(0,0,0,0.05);
             transition: transform 0.2s;
         }
         #info-btn:hover {
-            transform: scale(1.1);
+            transform: scale(1.05);
         }
 
+        /* --- INFO POPUP (GLASSMORPHISM, JOBB ALSÓ) --- */
         #info-modal {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(245, 244, 242, 0.95);
+            bottom: 85px; /* A gomb felett */
+            right: 30px;
+            width: 320px;
+            background: rgba(245, 244, 242, 0.65); /* Áttetsző */
+            backdrop-filter: blur(20px); /* Erős homályosítás */
+            -webkit-backdrop-filter: blur(20px);
+            padding: 24px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.5);
             z-index: 1999;
+            
+            /* Animáció */
+            opacity: 0;
+            transform: translateY(10px) scale(0.95);
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        #info-modal.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: all;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .pill-badge {
+            background: #fff;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .close-btn {
+            background: #e0e0e0;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-        }
-        #info-modal.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-        .modal-content {
-            max-width: 400px;
-            padding: 40px;
-            text-align: center;
-        }
-        .close-btn {
-            margin-top: 20px;
-            padding: 10px 20px;
-            background: #333;
-            color: white;
-            border: none;
-            border-radius: 20px;
             cursor: pointer;
+            color: #555;
+            transition: background 0.2s;
+        }
+        .close-btn:hover {
+            background: #d0d0d0;
+        }
+        .close-btn svg {
+            width: 12px;
+            height: 12px;
+            fill: currentColor;
+        }
+
+        .modal-content p {
+            font-size: 13px;
+            line-height: 1.5;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .modal-links {
+            margin-top: 15px;
+            border-top: 1px solid rgba(0,0,0,0.05);
+            padding-top: 15px;
+        }
+        
+        .modal-links a {
+            display: block;
+            font-size: 13px;
+            color: #4a80c4;
+            text-decoration: none;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        .modal-links a:hover {
+            text-decoration: underline;
         }
 
     </style>
@@ -171,7 +239,7 @@
 <body>
 
     <div id="header">
-        <h1>Képgaléria (Random sorrend)</h1>
+        <h1>Karácsonyi képgaléria (nem csak karácsonyra)</h1>
     </div>
 
     <div id="scroll-container">
@@ -181,24 +249,28 @@
     <div id="info-btn">i</div>
 
     <div id="info-modal">
+        <div class="modal-header">
+            <div class="pill-badge">MINK képgaléria</div>
+            <button class="close-btn" aria-label="Bezárás">
+                <svg viewBox="0 0 12 12">
+                    <path d="M1 1l10 10m0-10L1 11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
         <div class="modal-content">
-            <h2>A Galériáról</h2>
-            <p>Ez egy véletlenszerűen generált, végtelenített vászonra helyezett képgyűjtemény. A képek automatikusan töltik ki a rendelkezésre álló teret a "masonry" elrendezés segítségével.</p>
-            <p>Görgess bátran bármelyik irányba!</p>
-            <button class="close-btn">Bezárás</button>
+            <p>Ebben a galéribán megtalálod az elmúlt (lassan) egy év közösen eltöltött pillanatainak egy töredékét. </p>
+            <p>Jó böngészést és keresgélést kívánok Édesem. &#128158;</p>
         </div>
     </div>
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const container = document.getElementById('gallery-grid');
-            const totalImages = 100;
+            const scrollContainer = document.getElementById('scroll-container');
+            const totalImages = 138;
             
-            // 1. Tömb létrehozása és keverése
-            let imageNumbers = [];
-            for (let i = 1; i <= totalImages; i++) {
-                imageNumbers.push(i);
-            }
+            // --- 1. KÉPEK GENERÁLÁSA ---
+            let imageNumbers = Array.from({length: totalImages}, (_, i) => i + 1);
 
             // Fisher-Yates shuffle
             for (let i = imageNumbers.length - 1; i > 0; i--) {
@@ -206,64 +278,116 @@
                 [imageNumbers[i], imageNumbers[j]] = [imageNumbers[j], imageNumbers[i]];
             }
 
-            // 2. Képek generálása
             imageNumbers.forEach(number => {
                 const div = document.createElement('div');
                 div.className = 'gallery-item';
 
-                // TETRIS LOGIKA:
-                // Kb. minden 5. kép legyen "Nagy" (2x2-es méretű)
-                // Ez töri meg a rácsot és adja a layout dinamikáját
-                if (Math.random() > 0.8) {
-                    div.classList.add('span-2');
-                }
+                // Tetris logika: Véletlenszerű méretek
+                const rand = Math.random();
+                if (rand > 0.85) div.classList.add('span-2');      // Nagy négyzet
+                else if (rand > 0.75) div.classList.add('span-wide'); // Széles
+                else if (rand > 0.65) div.classList.add('span-tall'); // Magas
 
                 const img = document.createElement('img');
-                
-                // Mappa útvonal beállítása (ha mappában vannak, hagyd így, ha nem, vedd ki a "kepek/" részt)
-                img.src = `kepek/${number}.jpg`; 
-                img.alt = `Kép ${number}`;
-                img.loading = "lazy";
-                
-                // Animáció betöltéskor
-                img.onload = () => {
-                    img.classList.add('loaded');
+
+                // 1. Siker esetén megjelenítjük
+                img.onload = function() {
+                    this.classList.add('loaded'); 
                 };
 
+                // 2. HIBA esetén (pl. nem találja a .jpg-t)
+                img.onerror = function() {
+                    // Megnézzük, hogy próbáltuk-e már a .jpeg verziót
+                    if (this.getAttribute('data-tried-jpeg') !== 'true') {
+                        // Ha még nem, akkor most megjelöljük és megpróbáljuk
+                        this.setAttribute('data-tried-jpeg', 'true');
+                        // Átírjuk a forrást .jpeg-re. Ez automatikusan újratöltést indít.
+                        this.src = `kepek/${number}.jpeg`;
+                    } else {
+                        // Ha már a .jpeg-et is próbáltuk és az is hibás, akkor elrejtjük
+                        // console.log('Kép nem található sem jpg, sem jpeg formátumban:', number);
+                        this.style.display = 'none';
+                    }
+                };
+
+                // Először mindig a .jpg-vel próbálkozunk
+                img.src = `kepek/${number}.jpg`; 
+                img.alt = `Kép ${number}`;
+                
                 div.appendChild(img);
                 container.appendChild(div);
             });
 
-            // 3. Görgetés középre állítása induláskor
-            // Hogy a felhasználó érezze, hogy minden irányba mehet
-            const scrollContainer = document.getElementById('scroll-container');
-            const gridWidth = container.offsetWidth;
-            const gridHeight = container.offsetHeight;
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
 
-            // Középre görgetés
-            scrollContainer.scrollTo(
-                (gridWidth - windowWidth) / 2, 
-                0 // Fentről indulunk, de vízszintesen középen vagyunk
-            );
+            // --- 2. KÖZÉPRE IGAZÍTÁS INDULÁSKOR ---
+            // Várunk egy picit, hogy a böngésző kiszámolja a méreteket
+            setTimeout(() => {
+                const gridWidth = container.offsetWidth;
+                const gridHeight = container.offsetHeight;
+                const windowWidth = window.innerWidth;
+                const windowHeight = window.innerHeight;
 
-            // 4. Info Modal kezelése
+                scrollContainer.scrollTo({
+                    left: (gridWidth - windowWidth) / 2,
+                    top: (gridHeight - windowHeight) / 2,
+                    behavior: 'auto' // Azonnali ugrás
+                });
+            }, 100);
+
+            // --- 3. DRAG TO SCROLL (Húzd és vidd) ---
+            let isDown = false;
+            let startX;
+            let startY;
+            let scrollLeft;
+            let scrollTop;
+
+            scrollContainer.addEventListener('mousedown', (e) => {
+                isDown = true;
+                scrollContainer.classList.add('active');
+                startX = e.pageX - scrollContainer.offsetLeft;
+                startY = e.pageY - scrollContainer.offsetTop;
+                scrollLeft = scrollContainer.scrollLeft;
+                scrollTop = scrollContainer.scrollTop;
+            });
+
+            scrollContainer.addEventListener('mouseleave', () => {
+                isDown = false;
+                scrollContainer.classList.remove('active');
+            });
+
+            scrollContainer.addEventListener('mouseup', () => {
+                isDown = false;
+                scrollContainer.classList.remove('active');
+            });
+
+            scrollContainer.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - scrollContainer.offsetLeft;
+                const y = e.pageY - scrollContainer.offsetTop;
+                const walkX = (x - startX) * 1.5; // Sebesség szorzó
+                const walkY = (y - startY) * 1.5;
+                scrollContainer.scrollLeft = scrollLeft - walkX;
+                scrollContainer.scrollTop = scrollTop - walkY;
+            });
+
+            // --- 4. POPUP KEZELÉS ---
             const infoBtn = document.getElementById('info-btn');
             const modal = document.getElementById('info-modal');
             const closeBtn = document.querySelector('.close-btn');
 
-            infoBtn.addEventListener('click', () => {
-                modal.classList.add('active');
+            infoBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Hogy ne kattintson át alatta
+                modal.classList.toggle('active');
             });
 
             closeBtn.addEventListener('click', () => {
                 modal.classList.remove('active');
             });
-            
-            // Bezárás ha a háttérre kattint
-            modal.addEventListener('click', (e) => {
-                if(e.target === modal) {
+
+            // Kattintás bárhova máshova bezárja
+            document.addEventListener('click', (e) => {
+                if (!modal.contains(e.target) && e.target !== infoBtn) {
                     modal.classList.remove('active');
                 }
             });
