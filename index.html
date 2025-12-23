@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Interaktív Galéria</title>
+    <style>
+        /* Alap beállítások - eltüntetjük a böngésző alap görgetősávjait */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* A body nem görgethető, csak a belső konténer */
+            background-color: #f4f4f0; /* Cosmos-szerű háttérszín */
+        }
+
+        /* Ez a görgethető "ablak", ami a képernyőt kitölti */
+        .viewport {
+            width: 100vw;
+            height: 100vh;
+            overflow: scroll; /* Ez engedélyezi a görgetést minden irányba */
+            -webkit-overflow-scrolling: touch; /* Sima görgetés iOS-en */
+            position: relative;
+            cursor: grab;
+        }
+
+        /* Ez a hatalmas vászon a képekkel */
+        .canvas {
+            /* A vászon 3x akkora, mint a képernyő, így minden irányba van hely */
+            width: 300vw; 
+            height: 300vh;
+            
+            /* Rács elrendezés a képeknek */
+            display: masonry; /* Jövőbeli szabvány, de most trükközünk: */
+            column-count: 6; /* Hány oszlop legyen a teljes szélességen */
+            column-gap: 15px;
+            padding: 100px; /* Hagyunk egy kis margót a szélén */
+            box-sizing: border-box;
+        }
+
+        /* A képek stílusa */
+        .gallery-item {
+            break-inside: avoid; /* Ne vágja el a képet oszloptörésnél */
+            margin-bottom: 15px;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Kiemelés érintésre/kattintásra */
+        .gallery-item:active {
+            transform: scale(0.98);
+        }
+
+        /* --- Méret variációk --- */
+        
+        /* Mobilon a 300vw szélességen a 6 oszlop kb. 
+           azt jelenti, hogy 2 oszlop látszik egyszerre a képernyőn. */
+        
+        @media (min-width: 768px) {
+            .canvas {
+                column-count: 8;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="viewport" id="viewport">
+        <div class="canvas">
+            
+            <div class="gallery-item">
+                <img src="images/kep1.jpg" alt="Kép leírása">
+            </div>
+
+            <div class="gallery-item">
+                <img src="images/kep2.jpg" alt="Kép leírása">
+            </div>
+
+            <div class="gallery-item">
+                <img src="images/kep3.jpg" alt="Kép leírása">
+            </div>
+
+            <div class="gallery-item"><img src="https://picsum.photos/400/600" alt=""></div>
+            <div class="gallery-item"><img src="https://picsum.photos/400/300" alt=""></div>
+            <div class="gallery-item"><img src="https://picsum.photos/400/500" alt=""></div>
+            <div class="gallery-item"><img src="https://picsum.photos/400/400" alt=""></div>
+            <div class="gallery-item"><img src="https://picsum.photos/400/700" alt=""></div>
+            <div class="gallery-item"><img src="https://picsum.photos/400/350" alt=""></div>
+            <div class="gallery-item"><img src="https://picsum.photos/400/600" alt=""></div>
+            <div class="gallery-item"><img src="https://picsum.photos/400/300" alt=""></div>
+            <div class="gallery-item"><img src="https://picsum.photos/400/500" alt=""></div>
+            <div class="gallery-item"><img src="https://picsum.photos/400/400" alt=""></div>
+            <div class="gallery-item"><img src="https://picsum.photos/400/700" alt=""></div>
+            <div class="gallery-item"><img src="https://picsum.photos/400/350" alt=""></div>
+             <div class="gallery-item"><img src="https://picsum.photos/400/600" alt=""></div>
+            <div class="gallery-item"><img src="https://picsum.photos/400/300" alt=""></div>
+            <div class="gallery-item"><img src="https://picsum.photos/400/500" alt=""></div>
+            <div class="gallery-item"><img src="https://picsum.photos/400/400" alt=""></div>
+            
+        </div>
+    </div>
+
+    <script>
+        // Ez a kis script felel azért, hogy betöltéskor középre ugorjon a nézet
+        window.onload = function() {
+            const viewport = document.getElementById('viewport');
+            const canvasWidth = viewport.scrollWidth;
+            const canvasHeight = viewport.scrollHeight;
+            const screenWidth = window.innerWidth;
+            const screenHeight = window.innerHeight;
+
+            // Kiszámoljuk a középpontot
+            const centerX = (canvasWidth - screenWidth) / 2;
+            const centerY = (canvasHeight - screenHeight) / 2;
+
+            // Oda görgetünk
+            viewport.scrollTo(centerX, centerY);
+        };
+    </script>
+</body>
+</html>
