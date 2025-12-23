@@ -67,7 +67,7 @@
         #gallery-grid {
             /* Hatalmas vászonméret */
             width: 450vw; 
-            min-height: 150vh;
+            min-height: 100vh;
             padding: 14px ;/*Nagy margó, hogy legyen "tér" */
             
             display: grid;
@@ -116,10 +116,9 @@
         }
 
         /* --- INFO GOMB --- */
-        #info-btn {
+        .floating-btn {
             position: fixed;
             bottom: 30px;
-            right: 30px;
             width: 44px;
             height: 44px;
             background: rgba(237, 233, 229, 0.8);
@@ -139,12 +138,26 @@
             border: 1px solid rgba(0,0,0,0.05);
             transition: transform 0.2s;
         }
-        #info-btn:hover {
+        .floating-btn:hover {
             transform: scale(1.05);
         }
 
+        #info-btn {
+            bottom: 30px; /* Alul */
+            right: 30px;
+            font-weight: 600; font-family: serif; font-style: italic; font-size: 18px;
+        }
+        #time-btn {
+            bottom: 30px; /* Ugyanabban a magasságban, mint az info gomb */
+            right: 90px;  /* Balra tolva (30px + 44px szélesség + kb 15px hézag) */
+        }
+        
+        #time-btn svg {
+            width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2;
+        }
+
         /* --- INFO POPUP (GLASSMORPHISM, JOBB ALSÓ) --- */
-        #info-modal {
+        .modal {
             position: fixed;
             bottom: 85px; /* A gomb felett */
             right: 30px;
@@ -165,7 +178,7 @@
             transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        #info-modal.active {
+        .modal.active {
             opacity: 1;
             transform: translateY(0) scale(1);
             pointer-events: all;
@@ -206,7 +219,9 @@
         .close-btn svg {
             width: 12px;
             height: 12px;
-            fill: currentColor;
+            fill: none; /* Kitöltés kikapcsolása */
+            stroke: currentColor; /* Vonal szín bekapcsolása */
+            stroke-width: 2; /* Vonal vastagság */
         }
 
         .modal-content p {
@@ -216,22 +231,34 @@
             margin-bottom: 15px;
         }
 
-        .modal-links {
+        .date-input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid #ccc;
+            background: rgba(255, 255, 255, 0.6);
+            font-size: 16px;
+            outline: none;
+            text-align: center;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            transition: all 0.3s;
+        }
+        .date-input:focus {
+            border-color: #1d1717;
+            background: #fff;
+        }
+
+        #timer-result {
+            display: none; /* Alapból rejtve */
             margin-top: 15px;
-            border-top: 1px solid rgba(0,0,0,0.05);
             padding-top: 15px;
+            border-top: 1px solid rgba(0,0,0,0.1);
         }
-        
-        .modal-links a {
-            display: block;
-            font-size: 13px;
-            color: #4a80c4;
-            text-decoration: none;
-            margin-bottom: 6px;
-            font-weight: 500;
-        }
-        .modal-links a:hover {
-            text-decoration: underline;
+        .highlight-number {
+            font-weight: 700;
+            color: #1d1717;
+            font-size: 1.1em;
         }
 
     </style>
@@ -246,14 +273,20 @@
         <div id="gallery-grid"></div>
     </div>
 
-    <div id="info-btn">i</div>
+    <div id="time-btn" class="floating-btn">
+            <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+        </div>
+    <div id="info-btn" class="floating-btn">i</div>
 
-    <div id="info-modal">
+    <div id="info-modal" class="modal">
         <div class="modal-header">
-            <div class="pill-badge">MINK</div>
+            <div class="pill-badge">Részletek</div>
             <button class="close-btn" aria-label="Bezárás">
                 <svg viewBox="0 0 12 12">
-                    <path d="M1 1l10 10m0-10L1 11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M1 1l10 10m0-10L1 11" stroke-linecap="round"/>
                 </svg>
             </button>
         </div>
@@ -262,6 +295,26 @@
             <p>Jó böngészést és keresgélést kívánok Édesem. &#128158;</p>
         </div>
     </div>
+
+    <div id="time-modal" class="modal">
+        <div class="modal-header">
+            <div class="pill-badge">MINK</div>
+            <button class="close-btn" aria-label="Bezárás">
+                <svg viewBox="0 0 12 12">
+                    <path d="M1 1l10 10m0-10L1 11" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-content">
+            <p>Add meg az időpontot, amikor összejöttünk:</p>
+            <input type="text" id="date-check" class="date-input" placeholder="01.01" maxlength="5">
+            
+            <div id="timer-result">
+                <p>Az első találkozásunk óta <bold><span id="minutes-count" class="highlight-number">0</span></bold> perc telt el és még milyen sokon fogunk közösen osztozni.</p>
+            </div>
+        </div>
+    </div>
+
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
@@ -313,6 +366,7 @@
                 // Először mindig a .jpg-vel próbálkozunk
                 img.src = `kepek/${number}.jpg`; 
                 img.alt = `Kép ${number}`;
+                img.loading = 'lazy';
                 
                 div.appendChild(img);
                 container.appendChild(div);
@@ -372,25 +426,93 @@
             });
 
             // --- 4. POPUP KEZELÉS ---
-            const infoBtn = document.getElementById('info-btn');
-            const modal = document.getElementById('info-modal');
-            const closeBtn = document.querySelector('.close-btn');
+            
+            // !!! --- ÚJ / MÓDOSÍTOTT RÉSZ: UNIVERZÁLIS ABLAK KEZELŐ --- !!!
+            function toggleModal(modalId) {
+                const targetModal = document.getElementById(modalId);
+                const allModals = document.querySelectorAll('.modal');
+                
+                // Ha épp nyitva van, zárjuk be
+                if (targetModal.classList.contains('active')) {
+                    targetModal.classList.remove('active');
+                } else {
+                    // Ha nincs nyitva, előbb zárjuk be az összes többit
+                    allModals.forEach(m => m.classList.remove('active'));
+                    targetModal.classList.add('active');
+                }
+            }
 
-            infoBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); // Hogy ne kattintson át alatta
-                modal.classList.toggle('active');
+            // INFO GOMB
+            document.getElementById('info-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleModal('info-modal');
             });
 
-            closeBtn.addEventListener('click', () => {
-                modal.classList.remove('active');
+            // !!! --- ÚJ ESEMÉNY: IDŐ GOMB --- !!!
+            document.getElementById('time-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleModal('time-modal');
+            });
+
+            // Bezáró gombok
+            document.querySelectorAll('.close-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.target.closest('.modal').classList.remove('active');
+                });
             });
 
             // Kattintás bárhova máshova bezárja
             document.addEventListener('click', (e) => {
-                if (!modal.contains(e.target) && e.target !== infoBtn) {
-                    modal.classList.remove('active');
+                const modals = document.querySelectorAll('.modal');
+                let clickedInside = false;
+                modals.forEach(m => { if(m.contains(e.target)) clickedInside = true; });
+
+                if (!clickedInside && e.target.id !== 'info-btn' && e.target.closest('#time-btn') === null) {
+                    modals.forEach(m => m.classList.remove('active'));
                 }
             });
+
+            // !!! --- ÚJ RÉSZ: IDŐSZÁMLÁLÓ LOGIKA --- !!!
+            const dateInput = document.getElementById('date-check');
+            const resultDiv = document.getElementById('timer-result');
+            const minutesSpan = document.getElementById('minutes-count');
+            let timerInterval;
+
+            // A kitűzött dátum: 2025.01.17 12:34
+            const startDate = new Date('2025-01-17T12:34:00');
+
+            function updateTimer() {
+                const now = new Date();
+                const diffMs = now - startDate; // Különbség milliszekundumban
+                const diffMinutes = Math.floor(diffMs / (1000 * 60)); // Átváltás percbe
+                
+                // Szép formázás (pl. 10 000)
+                minutesSpan.textContent = diffMinutes.toLocaleString('hu-HU');
+            }
+
+            dateInput.addEventListener('input', function(e) {
+                const val = e.target.value.trim();
+                
+                if (val === '03.02') {
+                    // HELYES DÁTUM
+                    updateTimer(); 
+                    resultDiv.style.display = 'block'; 
+                    
+                    if (!timerInterval) {
+                        timerInterval = setInterval(updateTimer, 1000); 
+                    }
+                    this.style.borderColor = '#4CAF50'; // Zöld keret
+                } else {
+                    // HELYTELEN DÁTUM
+                    resultDiv.style.display = 'none';
+                    this.style.borderColor = '#ccc';
+                    if (timerInterval) clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+            });
+
+
+
         });
     </script>
 
