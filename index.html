@@ -2,75 +2,270 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Véletlenszerű Képgaléria</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Képgaléria</title>
     <style>
-        /* Egyszerű rács elrendezés a képeknek */
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
+        /* ALAPBEÁLLÍTÁSOK */
+        body, html {
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            background-color: #f5f4f2; /* Cosmos stílusú háttérszín */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            height: 100%;
+            overflow: hidden; /* A body nem görgethető, csak a belső konténer */
+            -webkit-tap-highlight-color: transparent;
         }
 
-        #gallery-container {
+        /* GÖRGETHETŐ VÁSZON (CANVAS) */
+        #scroll-container {
+            width: 100vw;
+            height: 100vh;
+            overflow: scroll; /* Mindkét irányba görgethető */
+            position: relative;
+            /* Eltüntetjük a görgetősávokat a letisztult designért */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+            cursor: grab; /* Kéz ikon */
+        }
+        #scroll-container::-webkit-scrollbar { 
+            display: none; /* Chrome/Safari */
+        }
+        #scroll-container:active {
+            cursor: grabbing;
+        }
+
+        /* LEBEGŐ FEJLÉC */
+        #header {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(245, 244, 242, 0.7); /* Enyhén áttetsző háttér */
+            backdrop-filter: blur(15px); /* A blur effekt */
+            -webkit-backdrop-filter: blur(15px);
+            padding: 10px 30px;
+            border-radius: 50px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border: 1px solid rgba(255,255,255,0.5);
+            pointer-events: none; /* Hogy át lehessen rajta görgetni, ha kell */
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        /* A "TETRIS" RÁCS */
+        #gallery-grid {
+            /* A vászon mérete. 200vw = 2x a képernyő szélessége -> oldalra görgetés */
+            width: 250vw; 
+            padding: 100px 20px; /* Hagyunk helyet fent a fejlécnek */
+            
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
+            /* Ez a kulcs: kb 150px széles oszlopok, kitöltik a teret */
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            /* Automatikus sűrű elhelyezés - ez tölti ki a lyukakat (Tetris mód) */
+            grid-auto-flow: dense; 
+            gap: 10px;
         }
 
-        #gallery-container img {
+        .gallery-item {
+            position: relative;
             width: 100%;
-            height: auto;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
-            background-color: #ddd; /* Helykitöltő szín betöltésig */
+            height: 100%;
+            border-radius: 4px;
+            overflow: hidden;
+            background-color: #e0e0e0;
+            /* Alapértelmezett képarány (pl. álló) */
+            aspect-ratio: 2 / 3; 
+            transition: transform 0.3s ease;
         }
 
-        #gallery-container img:hover {
-            transform: scale(1.05);
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* A kép kitölti a rendelkezésre álló helyet torzítás nélkül */
+            display: block;
+            opacity: 0;
+            transition: opacity 0.5s ease;
         }
+        
+        .gallery-item img.loaded {
+            opacity: 1;
+        }
+
+        .gallery-item:hover {
+            transform: scale(0.98);
+            z-index: 10;
+        }
+
+        /* NAGY MÉRETŰ KÉPEK (2x2-es blokk) */
+        .span-2 {
+            grid-column: span 2;
+            grid-row: span 2;
+        }
+
+        /* INFO GOMB ÉS MODAL */
+        #info-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            cursor: pointer;
+            z-index: 2000;
+            font-weight: bold;
+            font-size: 20px;
+            color: #333;
+            transition: transform 0.2s;
+        }
+        #info-btn:hover {
+            transform: scale(1.1);
+        }
+
+        #info-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(245, 244, 242, 0.95);
+            z-index: 1999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        #info-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .modal-content {
+            max-width: 400px;
+            padding: 40px;
+            text-align: center;
+        }
+        .close-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
     </style>
 </head>
 <body>
 
-    <h1>Képgaléria (Random sorrend)</h1>
-    <div id="gallery-container"></div>
+    <div id="header">
+        <h1>Képgaléria (Random sorrend)</h1>
+    </div>
+
+    <div id="scroll-container">
+        <div id="gallery-grid"></div>
+    </div>
+
+    <div id="info-btn">i</div>
+
+    <div id="info-modal">
+        <div class="modal-content">
+            <h2>A Galériáról</h2>
+            <p>Ez egy véletlenszerűen generált, végtelenített vászonra helyezett képgyűjtemény. A képek automatikusan töltik ki a rendelkezésre álló teret a "masonry" elrendezés segítségével.</p>
+            <p>Görgess bátran bármelyik irányba!</p>
+            <button class="close-btn">Bezárás</button>
+        </div>
+    </div>
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            const container = document.getElementById('gallery-container');
-            const totalImages = 97;
+            const container = document.getElementById('gallery-grid');
+            const totalImages = 100;
             
-            // 1. Tömb létrehozása 1-től 100-ig
+            // 1. Tömb létrehozása és keverése
             let imageNumbers = [];
             for (let i = 1; i <= totalImages; i++) {
                 imageNumbers.push(i);
             }
 
-            // 2. A tömb összekeverése (Fisher-Yates shuffle algoritmus)
-            // Ez biztosítja a valódi véletlenszerűséget
+            // Fisher-Yates shuffle
             for (let i = imageNumbers.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [imageNumbers[i], imageNumbers[j]] = [imageNumbers[j], imageNumbers[i]];
             }
 
-            // 3. A képek generálása és beillesztése a kevert sorrend alapján
+            // 2. Képek generálása
             imageNumbers.forEach(number => {
+                const div = document.createElement('div');
+                div.className = 'gallery-item';
+
+                // TETRIS LOGIKA:
+                // Kb. minden 5. kép legyen "Nagy" (2x2-es méretű)
+                // Ez töri meg a rácsot és adja a layout dinamikáját
+                if (Math.random() > 0.8) {
+                    div.classList.add('span-2');
+                }
+
                 const img = document.createElement('img');
                 
-                // Kép forrása: 1.jpg, 2.jpg ... 100.jpg
+                // Mappa útvonal beállítása (ha mappában vannak, hagyd így, ha nem, vedd ki a "kepek/" részt)
                 img.src = `kepek/${number}.jpg`; 
-                
-                // Alt szöveg a hozzáférhetőségért
-                img.alt = `kepek/${number}. kép`;
-                
-                // Lazy loading hozzáadása
+                img.alt = `Kép ${number}`;
                 img.loading = "lazy";
                 
-                // Hozzáadás a konténerhez
-                container.appendChild(img);
+                // Animáció betöltéskor
+                img.onload = () => {
+                    img.classList.add('loaded');
+                };
+
+                div.appendChild(img);
+                container.appendChild(div);
+            });
+
+            // 3. Görgetés középre állítása induláskor
+            // Hogy a felhasználó érezze, hogy minden irányba mehet
+            const scrollContainer = document.getElementById('scroll-container');
+            const gridWidth = container.offsetWidth;
+            const gridHeight = container.offsetHeight;
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+
+            // Középre görgetés
+            scrollContainer.scrollTo(
+                (gridWidth - windowWidth) / 2, 
+                0 // Fentről indulunk, de vízszintesen középen vagyunk
+            );
+
+            // 4. Info Modal kezelése
+            const infoBtn = document.getElementById('info-btn');
+            const modal = document.getElementById('info-modal');
+            const closeBtn = document.querySelector('.close-btn');
+
+            infoBtn.addEventListener('click', () => {
+                modal.classList.add('active');
+            });
+
+            closeBtn.addEventListener('click', () => {
+                modal.classList.remove('active');
+            });
+            
+            // Bezárás ha a háttérre kattint
+            modal.addEventListener('click', (e) => {
+                if(e.target === modal) {
+                    modal.classList.remove('active');
+                }
             });
         });
     </script>
