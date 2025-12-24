@@ -352,15 +352,24 @@
 
                 // 2. HIBA esetén (pl. nem találja a .jpg-t)
                 img.onerror = function() {
-                    // Megnézzük, hogy próbáltuk-e már a .jpeg verziót
-                    if (this.getAttribute('data-tried-jpeg') !== 'true') {
-                        // Ha még nem, akkor most megjelöljük és megpróbáljuk
-                        this.setAttribute('data-tried-jpeg', 'true');
-                        // Átírjuk a forrást .jpeg-re. Ez automatikusan újratöltést indít.
+                    // Lekérjük a jelenlegi állapotot, vagy 'start'-ról indulunk
+                    const state = this.getAttribute('data-ext-state') || 'start';
+
+                    if (state === 'start') {
+                        // 1. hiba: .jpg nem ment -> próba .jpeg
+                        this.setAttribute('data-ext-state', 'jpeg');
                         this.src = `kepek/${number}.jpeg`;
+                    } else if (state === 'jpeg') {
+                        // 2. hiba: .jpeg se ment -> próba .JPG (nagybetűs)
+                        this.setAttribute('data-ext-state', 'JPG');
+                        this.src = `kepek/${number}.JPG`;
+                    } else if (state === 'JPG') {
+                        // 3. hiba: .JPG se ment -> próba .JPEG (nagybetűs)
+                        this.setAttribute('data-ext-state', 'JPEG');
+                        this.src = `kepek/${number}.JPEG`;
                     } else {
-                        // Ha már a .jpeg-et is próbáltuk és az is hibás, akkor elrejtjük
-                        // console.log('Kép nem található sem jpg, sem jpeg formátumban:', number);
+                        // 4. hiba: Minden kísérlet sikertelen -> elrejtés
+                        // console.log(`Végleg sikertelen: ${number}`);
                         this.style.display = 'none';
                     }
                 };
@@ -525,7 +534,7 @@
                         img.src = currentSrc; // Visszaírjuk
                     }
                 });
-            }, 10000); // 4000ms = 4 másodperc várakozás
+            }, 10000); //10 másodperc várakozás
 
         });
     </script>
